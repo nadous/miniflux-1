@@ -135,6 +135,7 @@ func (h *handler) getEntries(w http.ResponseWriter, r *http.Request) {
 	offset := request.QueryIntParam(r, "offset", 0)
 	if err := model.ValidateRange(offset, limit); err != nil {
 		json.BadRequest(w, r, err)
+
 		return
 	}
 
@@ -144,6 +145,14 @@ func (h *handler) getEntries(w http.ResponseWriter, r *http.Request) {
 	builder.WithDirection(direction)
 	builder.WithOffset(offset)
 	builder.WithLimit(limit)
+
+	categoryID := request.QueryInt64Param(r, "category", -1)
+	if categoryID != -1 {
+		if h.store.CategoryExists(request.UserID(r), categoryID) {
+			builder.WithCategoryID(categoryID)
+		}
+	}
+
 	configureFilters(builder, r)
 
 	entries, err := builder.GetEntries()
@@ -164,7 +173,7 @@ func (h *handler) getEntries(w http.ResponseWriter, r *http.Request) {
 func (h *handler) setEntryStatus(w http.ResponseWriter, r *http.Request) {
 	entryIDs, status, err := decodeEntryStatusPayload(r.Body)
 	if err != nil {
-		json.BadRequest(w , r, errors.New("Invalid JSON payload"))
+		json.BadRequest(w, r, errors.New("Invalid JSON payload"))
 		return
 	}
 
